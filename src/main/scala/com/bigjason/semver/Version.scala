@@ -89,8 +89,8 @@ final case class Version(major: Int, minor: Int, patch: Int, preRelease: List[St
 object Version {
   private[semver] final case class PreRelease(pre: String, version: Int) extends Ordered[PreRelease] {
     override def compare(that: PreRelease): Int =
-      if (pre equals that.pre) version.compare(that.version)
-      else pre.compare(that.pre)
+      if (pre equalsIgnoreCase that.pre) version compare that.version
+      else pre compareToIgnoreCase that.pre
   }
 
   @inline

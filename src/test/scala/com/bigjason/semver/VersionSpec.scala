@@ -225,6 +225,7 @@ class VersionSpec extends FunSpec with Matchers {
     it("should order for pre-release differences") {
       v"1.2.1-alpha" should equal(v"1.2.1-alpha")
       v"1.2.1-alpha.0" should equal(v"1.2.1-alpha")
+      v"1.2.3-BETA.1" should equal(v"1.2.3-beta.1")
       v"1.2.3-beta.1" should be < v"1.2.3-rc.1"
       v"1.2.3-beta.1" should be < v"1.2.3-beta.4"
       v"1.2.3-beta.1" should be <= v"1.2.3-beta.1"
