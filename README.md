@@ -3,8 +3,7 @@
 _Semantic version handling for Scala/Scala.js._
 
 ## Status
-**In active development. Hope to have 1.0 published somewhere before the
-end of 2016**.
+**In active development. Hope to have 1.0 published somewhere in early 2017**.
 
 ## Licence 
 [Apache 2.0]
