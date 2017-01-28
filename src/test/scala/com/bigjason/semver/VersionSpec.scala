@@ -200,7 +200,12 @@ class VersionSpec extends FunSpec with Matchers {
       v"1.2.3+ios.9" should equal(v"1.2.3+ios.10")
       v"1.2.3-rc.1+ios.9" should equal(v"1.2.3-rc.1+ios.10")
       v"1.2.3-rc.2+ios.10" shouldNot equal(v"1.2.3-rc.1+ios.10")
+    }
+
+    it("should not equal a matching string representation") {
       v"1.2.3" shouldNot equal("1.2.3")
+      v"1.2.3-alpha.1" shouldNot equal("1.2.3-alpha.1")
+      v"1.2.3-alpha.1+os2" shouldNot equal("1.2.3-alpha.1+os2")
     }
 
     it("should order for major differences") {
