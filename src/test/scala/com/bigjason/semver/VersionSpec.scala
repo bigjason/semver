@@ -183,6 +183,12 @@ class VersionSpec extends FunSpec with Matchers {
     }
   }
 
+  describe("pre-release handling") {
+    it("should find basic version") (v"1-beta.3".preReleaseVersion shouldBe 3)
+    it("should find return 0 when no numeric part is found") (v"1-beta".preReleaseVersion shouldBe 0)
+    it("should find return 0 when no pre-release is provided") (v"1".preReleaseVersion shouldBe 0)
+  }
+
   describe("equality comparisons") {
     it("should be equal to matching versions") {
       v"1.2.3" should equal(v"1.2.3")
@@ -194,6 +200,12 @@ class VersionSpec extends FunSpec with Matchers {
       v"1.2.3+ios.9" should equal(v"1.2.3+ios.10")
       v"1.2.3-rc.1+ios.9" should equal(v"1.2.3-rc.1+ios.10")
       v"1.2.3-rc.2+ios.10" shouldNot equal(v"1.2.3-rc.1+ios.10")
+    }
+
+    it("should not equal a matching string representation") {
+      v"1.2.3" shouldNot equal("1.2.3")
+      v"1.2.3-alpha.1" shouldNot equal("1.2.3-alpha.1")
+      v"1.2.3-alpha.1+os2" shouldNot equal("1.2.3-alpha.1+os2")
     }
 
     it("should order for major differences") {
@@ -232,6 +244,16 @@ class VersionSpec extends FunSpec with Matchers {
       v"1.2.3-rc.1" should be > v"1.2.3-beta.1"
       v"1.2.3-beta.4" should be > v"1.2.3-beta.1"
       v"1.2.3-beta.1" should be >= v"1.2.3-beta.1"
+    }
+
+    it("should correctly handle hashcode that doesn't include the build info") {
+      v"1.2.2".hashCode() should equal(v"1.2.2".hashCode())
+      v"1.2.2-alpha.3".hashCode() should equal(v"1.2.2-alpha.3".hashCode())
+      v"1.2.2-alpha.3".hashCode() should equal(v"1.2.2-alpha.3+osx.19".hashCode())
+      v"1.2.2-alpha.3".hashCode() shouldNot equal(v"1.2.2-alpha.6".hashCode())
+      v"1.2.2-alpha.3".hashCode() shouldNot equal(v"1.2.2-alpha".hashCode())
+      v"1.2.2".hashCode() shouldNot equal(v"1.2".hashCode())
+      v"1.2".hashCode() shouldNot equal(v"1".hashCode())
     }
   }
 }

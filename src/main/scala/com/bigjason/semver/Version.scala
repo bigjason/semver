@@ -7,6 +7,7 @@ import scala.util.Try
 import com.bigjason.semver.internal.VersionParser
 import fastparse.core.Parsed.{Failure, Success}
 
+@SerialVersionUID(1L)
 final case class Version(major: Int, minor: Int, patch: Int, preRelease: List[String], buildInfo: List[String]) extends Ordered[Version] {
   import Version.PreRelease
 
@@ -16,24 +17,67 @@ final case class Version(major: Int, minor: Int, patch: Int, preRelease: List[St
   require(patch >= 0, s"patch is $patch but must be 0 or greater")
   require(major > 0 || minor > 0 || patch > 0, "at least one part of the version must be greater than 0")
 
+  /**
+    * Increment the [[major]] part of the version while setting everything but [[buildInfo]] to the default value.
+    * @return A new immutable [[Version]].
+    */
   def incMajor: Version = Version(major + 1, 0, 0, Nil, buildInfo)
+
+  /**
+    * Increment the [[minor]] version while setting [[patch]] and [[preRelease]] to default values.
+    * @return A new immutable [[Version]].
+    */
   def incMinor: Version = Version(major, minor + 1, 0, Nil, buildInfo)
+
+  /**
+    * Increment the [[patch]] version while setting [[preRelease]] to it's default value.
+    * @return A new immutable [[Version]].
+    */
   def incPatch: Version = Version(major, minor, patch + 1, Nil, buildInfo)
+
+  /**
+    * Increment the numeric part of [[preRelease]].
+    * @return A new immutable [[Version]].
+    */
   def incPreRelease: Version = {
     val (pre, ver) = preReleaseCompTuple
     copy(preRelease = pre :+ (ver + 1).toString)
   }
 
+  /**
+    * Set the [[buildInfo]] part of the [[Version]].
+    * @param s New [[buildInfo]] value as a string.
+    * @return A new immutable [[Version]].
+    * @note The string will be parsed by the char {{{'.'}}}.
+    */
   def withBuildInfo(s: String): Option[Version] = VersionParser.metaData.parse(s) match {
     case Success(build, _) => Some(withBuildInfo(build))
     case Failure(_, _, _)  => None
   }
+
+  /**
+    * Set the [[buildInfo]] part of the [[Version]].
+    * @param build The new value pre-parsed.
+    * @return A new immutable [[Version]].
+    */
   def withBuildInfo(build: List[String]): Version = copy(buildInfo = build)
 
+  /**
+    * Set the [[preRelease]] part of the [[Version]].
+    * @param s The new value as a string.
+    * @return A new immutable [[Version]].
+    * @note The string will be parsed by the char {{{'.'}}}.
+    */
   def withPreRelease(s: String): Option[Version] = VersionParser.metaData.parse(s) match {
     case Success(preRel, _) => Some(withPreRelease(preRel))
     case Failure(_, _, _)   => None
   }
+
+  /**
+    * Set the [[preRelease]] part of the [[Version]].
+    * @param preRel The new [[preRelease]] value.
+    * @return A new immutable [[Version]].
+    */
   def withPreRelease(preRel: List[String]): Version = copy(preRelease = preRel)
 
   @inline def preReleaseString: String = preRelease.mkString(".")
@@ -42,6 +86,9 @@ final case class Version(major: Int, minor: Int, patch: Int, preRelease: List[St
 
   override def toString = s"v$value"
 
+  /**
+    * @return The complete version encoded as a semver 2.0 string.
+    */
   def value: String = {
     val sb = new StringBuilder(64)
     sb.append(major).append('.')
@@ -101,8 +148,28 @@ object Version {
       Left(failure.msg)
   }
 
+  /**
+    * Create a new [[Version]] with the specified [[Version.major]], [[Version.minor]] and [[Version.patch]] with all
+    * other parameters set to defaults.
+    * @return A new immutable [[Version]].
+    * @throws java.lang.IllegalArgumentException IllegalArgumentException
+    */
   def apply(major: Int, minor: Int, patch: Int): Version = new Version(major, minor, patch, Nil, Nil)
+  def apply(major: Int, minor: Int): Version = new Version(major, minor, 0, Nil, Nil)
+  def apply(major: Int): Version = new Version(major, 0, 0, Nil, Nil)
+
+  /**
+    * Parse a [[Version]] in the semver 2.0 format from a string.
+    * @param s A string in the semantic versioning 2.0 spec version.
+    * @return A [[scala.Option]] wrapped [[Version]] if the parse succeeds.
+    */
   def apply(s: String): Option[Version] = parse(s).right.toOption
+
+  /**
+    * Parse a [[Version]] in the semver 2.0 format from a string.
+    * @param s A string in the semantic versioning 2.0 spec version.
+    * @return And [[scala.Either]] with an error or the parsed string.
+    */
   def parse(s: String): Either[String, Version] = parseWith(s, VersionParser.version)
   def parseDirty(s: String): Either[String, Version] = parseWith(s, VersionParser.versionDirty)
 }
