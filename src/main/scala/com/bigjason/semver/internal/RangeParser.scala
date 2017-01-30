@@ -38,27 +38,36 @@ object RangeParser {
     case (NumericPart(m), Some((NumericPart(min), Some(WildcardPart) | None))) => MinorThenWild(m, min)
     case (NumericPart(m), Some((NumericPart(min), Some(NumericPart(p)))))      => PatchThenWild(m, min, p)
   }
-  val primitive: P[Range]          = P(operator ~ partial).map {
+  val primitive: P[Comparator]     = P(operator ~ partial).map {
     case (`LT`, v)  => LessThan(v)
     case (`LTE`, v) => LessThanOrEqual(v)
     case (`GT`, v)  => GreaterThan(v)
     case (`GTE`, v) => GreaterThanOrEqual(v)
     case (`EQ`, v)  => EqualTo(v)
+    case (`NEQ`, v) => Not(EqualTo(v))
   }
-  val tilde    : P[Tilde]          = P("~" ~ whiteSpaceOpt ~ partial).map(Tilde)
-  val caret    : P[Caret]          = P("^" ~ whiteSpaceOpt ~ partial).map(Caret)
-  val simple   : P[Range]          = P(primitive | partial | caret | tilde)
-  val hyphen   : P[Hyphen]         = P(partial ~ whiteSpace(1) ~ "-" ~ whiteSpace(1) ~ partial).map(Hyphen.tupled)
-  val range    : P[Range]          = P {
-    hyphen | simple.rep(min = 1, sep = whiteSpace(1)).map(_.toList).map(RangeList(_))
+  val tilde    : P[ComparatorSet]  = P("~" ~ whiteSpaceOpt ~ partial).map {
+    case ver@MajorThenWild(major)       => ComparatorSet.from(ver, MajorThenWild(major + 1))
+    case ver@MinorThenWild(_, minor)    => ComparatorSet.from(ver, ver.copy(minor = minor + 1))
+    case ver@PatchThenWild(_, minor, _) => ComparatorSet.from(ver, ver.copy(minor = minor + 1))
+    case Wild                           => ComparatorSet.from(MajorThenWild(0), MajorThenWild(1))
+  }
+  val caret    : P[ComparatorSet]  = P("^" ~ whiteSpaceOpt ~ partial).map {
+    case MajorThenWild(0) | Wild          => ComparatorSet.from(MajorThenWild(0), MajorThenWild(1))
+    case start@MajorThenWild(major)       => ComparatorSet.from(start, MajorThenWild(major + 1))
+    case start@MinorThenWild(0, minor)    => ComparatorSet.from(start, MinorThenWild(0, minor + 1))
+    case start@MinorThenWild(major, _)    => ComparatorSet.from(start, start.copy(major = major + 1))
+    case start@PatchThenWild(0, 0, patch) => ComparatorSet.from(start, start.copy(patch = patch + 1))
+    case start@PatchThenWild(0, minor, _) => ComparatorSet.from(start, MinorThenWild(0, minor + 1))
+    case start@PatchThenWild(major, _, _) => ComparatorSet.from(start, MajorThenWild(major + 1))
+  }
+  val simple   : P[ComparatorSet]  = P {
+    primitive.map(ComparatorSet.single) | partial.map(EqualTo).map(ComparatorSet.single) | caret | tilde
+  }
+  val hyphen   : P[ComparatorSet]  = P(partial ~ whiteSpace(1) ~ "-" ~ whiteSpace(1) ~ partial).map((ComparatorSet.from _).tupled)
+  val range    : P[ComparatorSet]  = P {
+    hyphen | simple.rep(min = 1, sep = whiteSpace(1)).map(_.toList).map(_.foldLeft(ComparatorSet.empty)(_ ++ _))
   }
   val logicalOr: P[Unit]           = P(whiteSpaceOpt ~ "||" ~ whiteSpaceOpt)
-  val rangeSet : P[RangeList]      = P(range.rep(min = 1, sep = logicalOr)).map { items =>
-    items.foldLeft(RangeList.empty) { (results, curr) =>
-      curr match {
-        case ranges: RangeList => results ++ ranges
-        case other             => results :+ other
-      }
-    }
-  }
+  val rangeSet : P[RangeList]      = P(range.rep(min = 1, sep = logicalOr)).map(_.foldLeft(RangeList.empty)(_ :+ _))
 }

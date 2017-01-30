@@ -30,13 +30,13 @@ class RangeSubParserSpec extends FunSpec with TableDrivenPropertyChecks with Mat
   }
 
   describe("hyphen part parser") {
-    val hyphenRangeExamples = Table[String, Hyphen](
+    val hyphenRangeExamples = Table[String, ComparatorSet](
       ("input string", "expected"),
-      ("1 - 2", Hyphen(MajorThenWild(1), MajorThenWild(2))),
-      ("1.0 - 2.11", Hyphen(MinorThenWild(1, 0), MinorThenWild(2, 11))),
-      ("1.3.5 - 2.9.2", Hyphen(PatchThenWild(1, 3, 5), PatchThenWild(2, 9, 2))),
-      ("1.3 - 2.9", Hyphen(MinorThenWild(1, 3), MinorThenWild(2, 9))),
-      ("1.3 - 2", Hyphen(MinorThenWild(1, 3), MajorThenWild(2)))
+      ("1 - 2", ComparatorSet.from(MajorThenWild(1), MajorThenWild(2))),
+      ("1.0 - 2.11", ComparatorSet.from(MinorThenWild(1, 0), MinorThenWild(2, 11))),
+      ("1.3.5 - 2.9.2", ComparatorSet.from(PatchThenWild(1, 3, 5), PatchThenWild(2, 9, 2))),
+      ("1.3 - 2.9", ComparatorSet.from(MinorThenWild(1, 3), MinorThenWild(2, 9))),
+      ("1.3 - 2", ComparatorSet.from(MinorThenWild(1, 3), MajorThenWild(2)))
     )
 
     forAll(hyphenRangeExamples) { case (input, expected) =>
